@@ -18,6 +18,9 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.CvType;
+import org.opencv.core.MatOfKeyPoint;
+import org.opencv.features2d.FeatureDetector;
 import org.opencv.core.Mat;
 
 
@@ -37,6 +40,10 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
     private static final int AUTO_HIDE_DELAY_MILLIS = 3000;
 
     private CameraBridgeViewBase mOpenCvCameraView;
+    private Mat mRgbaFrame;
+    private Mat mGrayFrame;
+    private FeatureDetector mFeatureDectector;
+    private MatOfKeyPoint mKeyPoints;
     private int mWidth;
     private int mHeight;
 
@@ -51,14 +58,7 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.camera_view);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
-    }
 
-    @Override
-    public void onPause()
-    {
-        super.onPause();
-        if (mOpenCvCameraView != null)
-            mOpenCvCameraView.disableView();
     }
 
     @Override
@@ -72,6 +72,21 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
             Log.d(TAG, "OpenCV library found inside package. Using it!");
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
+    }
+
+    @Override
+    public void onPause()
+    {
+        super.onPause();
+        if (mOpenCvCameraView != null)
+            mOpenCvCameraView.disableView();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (mOpenCvCameraView != null)
+            mOpenCvCameraView.disableView();
     }
 
     @Override
@@ -102,13 +117,30 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
     };
 
     public void onCameraViewStarted(int width, int height) {
+        mRgbaFrame = new Mat(height, width, CvType.CV_8UC4);
+        mGrayFrame = new Mat(height, width, CvType.CV_8UC1);
+        mKeyPoints = new MatOfKeyPoint();
+        try {
+            mFeatureDectector = FeatureDetector.create(FeatureDetector.GRID_FAST);
+        } catch (UnsatisfiedLinkError err) {
+            Log.e(TAG, "Feature detector failed with");
+            err.printStackTrace();
+        }
 
     }
 
     public void onCameraViewStopped() {
+        mRgbaFrame.release();
+        mGrayFrame.release();
     }
 
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        return inputFrame.rgba();
+
+        mRgbaFrame = inputFrame.rgba();
+        mGrayFrame = inputFrame.gray();
+
+        mFeatureDectector.detect(mGrayFrame, mKeyPoints);
+        
+        return mRgbaFrame;
     }
 }

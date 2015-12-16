@@ -21,7 +21,7 @@ public class SetupActivity extends AppCompatActivity {
     }
 
     public void startCamera(View view) {
-        //After Play button is hit
+        //After Start Camera button is hit
         Intent startCam = new Intent("crt.mori.second_eyes.CAMERAACTIVITY");
         startActivity(startCam);
     }

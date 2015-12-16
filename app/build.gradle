@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 22
+    compileSdkVersion 21
     buildToolsVersion "23.0.2"
 
     defaultConfig {
         applicationId "crt.mori.second_eyes"
-        minSdkVersion 22
-        targetSdkVersion 22
+        minSdkVersion 21
+        targetSdkVersion 21
         versionCode 1
         versionName "1.0"
     }
