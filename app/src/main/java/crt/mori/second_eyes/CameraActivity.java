@@ -1,6 +1,7 @@
 package crt.mori.second_eyes;
 
 import android.annotation.SuppressLint;
+import android.graphics.Color;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -19,34 +20,33 @@ import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.CvType;
+import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
+import org.opencv.core.Scalar;
+import org.opencv.features2d.DescriptorExtractor;
+import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
 import org.opencv.core.Mat;
+import org.opencv.features2d.Features2d;
 
 
 public class CameraActivity extends AppCompatActivity implements CvCameraViewListener2 {
 
     private static final String TAG = "CameraActivity";
-    /**
-     * Whether or not the system UI should be auto-hidden after
-     * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
-     */
-    private static final boolean AUTO_HIDE = true;
-
-    /**
-     * If {@link #AUTO_HIDE} is set, the number of milliseconds to wait after
-     * user interaction before hiding the system UI.
-     */
-    private static final int AUTO_HIDE_DELAY_MILLIS = 3000;
 
     private CameraBridgeViewBase mOpenCvCameraView;
     private Mat mRgbaFrame;
     private Mat mGrayFrame;
+    private Mat mOutFrame;
+    private Mat mDescPointsPrev;
+    private Scalar mKeyPointsColor = new Scalar(0.5,0.5,0.0,1.0);
     private FeatureDetector mFeatureDectector;
     private MatOfKeyPoint mKeyPoints;
+    private DescriptorExtractor mDescExtractor;
+    private DescriptorMatcher mDescMatcher;
+    private MatOfDMatch mMatchPoints;
     private int mWidth;
     private int mHeight;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,8 +62,7 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
     }
 
     @Override
-    public void onResume()
-    {
+    public void onResume() {
         super.onResume();
         if (!OpenCVLoader.initDebug()) {
             Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
@@ -75,8 +74,7 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
     }
 
     @Override
-    public void onPause()
-    {
+    public void onPause() {
         super.onPause();
         if (mOpenCvCameraView != null)
             mOpenCvCameraView.disableView();
@@ -117,15 +115,26 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
     };
 
     public void onCameraViewStarted(int width, int height) {
+        // set up start variables
         mRgbaFrame = new Mat(height, width, CvType.CV_8UC4);
         mGrayFrame = new Mat(height, width, CvType.CV_8UC1);
+        mOutFrame = new Mat(height, width, CvType.CV_8UC4);
+        mDescPointsPrev = new Mat(height, width, CvType.CV_8UC4);
         mKeyPoints = new MatOfKeyPoint();
+
+        // set up feature detection
         try {
-            mFeatureDectector = FeatureDetector.create(FeatureDetector.GRID_FAST);
+            mFeatureDectector = FeatureDetector.create(FeatureDetector.FAST);
         } catch (UnsatisfiedLinkError err) {
             Log.e(TAG, "Feature detector failed with");
             err.printStackTrace();
         }
+        // set up description detection
+        mDescExtractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
+        mDescMatcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+
+
+
 
     }
 
@@ -135,12 +144,20 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
     }
 
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-
         mRgbaFrame = inputFrame.rgba();
         mGrayFrame = inputFrame.gray();
 
-        mFeatureDectector.detect(mGrayFrame, mKeyPoints);
-        
-        return mRgbaFrame;
+        Mat DescPoints = new Mat();
+        MatOfDMatch matchingPoints = new MatOfDMatch();
+
+        mFeatureDectector.detect(mRgbaFrame, mKeyPoints);
+        mDescExtractor.compute(mRgbaFrame, mKeyPoints, DescPoints);
+
+        if (!mDescPointsPrev.empty() && !DescPoints.empty()) {
+            //mDescMatcher.match(DescPoints, mDescPointsPrev, matchingPoints);
+        }
+        DescPoints.copyTo(mDescPointsPrev);
+        Features2d.drawKeypoints(mGrayFrame,mKeyPoints,mOutFrame, mKeyPointsColor,0);
+        return mOutFrame;
     }
 }
