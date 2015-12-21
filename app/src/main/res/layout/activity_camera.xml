@@ -12,19 +12,15 @@
     <!-- This FrameLayout insets its children based on system windows using
          android:fitsSystemWindows. -->
     <LinearLayout
+        android:id="@+id/MapDrawingLayout"
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:weightSum="1">
 
-        <org.opencv.android.JavaCameraView android:layout_width="match_parent" android:layout_height="208dp" android:id="@+id/camera_view"
-            android:layout_weight="2.12" />
+        <org.opencv.android.JavaCameraView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/camera_view"
+            android:layout_weight="0.6" />
 
-        <SurfaceView
-            android:layout_width="match_parent"
-            android:layout_height="270dp"
-            android:id="@+id/surfaceView"
-            android:layout_gravity="center_horizontal|bottom" />
     </LinearLayout>
 
 </FrameLayout>

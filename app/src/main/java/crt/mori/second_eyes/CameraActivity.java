@@ -1,18 +1,26 @@
 package crt.mori.second_eyes;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.Surface;
+import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.MenuItem;
 import android.support.v4.app.NavUtils;
+import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.LinearLayout;
+import android.widget.MultiAutoCompleteTextView;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -29,36 +37,52 @@ import org.opencv.features2d.FeatureDetector;
 import org.opencv.core.Mat;
 import org.opencv.features2d.Features2d;
 
+import java.util.Random;
+
 
 public class CameraActivity extends AppCompatActivity implements CvCameraViewListener2 {
 
     private static final String TAG = "CameraActivity";
 
     private CameraBridgeViewBase mOpenCvCameraView;
+    private SurfaceView mSurfaceView;
     private Mat mRgbaFrame;
     private Mat mGrayFrame;
     private Mat mOutFrame;
     private Mat mDescPointsPrev;
-    private Scalar mKeyPointsColor = new Scalar(0.5,0.5,0.0,1.0);
+    private Scalar mKeyPointsColor = new Scalar(0.5,0.0,0.0,1.0);
+    private Scalar mKeyPointsColorPrev = new Scalar(0.0,0.5,0.0,1.0);
     private FeatureDetector mFeatureDectector;
     private MatOfKeyPoint mKeyPoints;
+    private MatOfKeyPoint mKeyPointsPrev;
     private DescriptorExtractor mDescExtractor;
     private DescriptorMatcher mDescMatcher;
     private MatOfDMatch mMatchPoints;
     private int mWidth;
     private int mHeight;
+    boolean isRunning=false;
+    int PointX = 0;
+    int PointY = 0;
+
+    Random mRandom;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_camera);
+
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.camera_view);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
 
+        mSurfaceView = new drawMap(this);
+        LinearLayout layout = (LinearLayout) findViewById(R.id.MapDrawingLayout);
+        mSurfaceView.setId(5000);
+        mSurfaceView.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 0.4f));
+        mSurfaceView.setBackgroundColor(Color.BLUE);
+        layout.addView(mSurfaceView);
     }
 
     @Override
@@ -121,6 +145,7 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
         mOutFrame = new Mat(height, width, CvType.CV_8UC4);
         mDescPointsPrev = new Mat(height, width, CvType.CV_8UC4);
         mKeyPoints = new MatOfKeyPoint();
+        mKeyPointsPrev = new MatOfKeyPoint();
 
         // set up feature detection
         try {
@@ -130,10 +155,10 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
             err.printStackTrace();
         }
         // set up description detection
-        mDescExtractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
+        mDescExtractor = DescriptorExtractor.create(DescriptorExtractor.BRISK);
         mDescMatcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
 
-
+        mRandom = new Random();
 
 
     }
@@ -153,11 +178,83 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
         mFeatureDectector.detect(mRgbaFrame, mKeyPoints);
         mDescExtractor.compute(mRgbaFrame, mKeyPoints, DescPoints);
 
-        if (!mDescPointsPrev.empty() && !DescPoints.empty()) {
-            //mDescMatcher.match(DescPoints, mDescPointsPrev, matchingPoints);
-        }
         DescPoints.copyTo(mDescPointsPrev);
-        Features2d.drawKeypoints(mGrayFrame,mKeyPoints,mOutFrame, mKeyPointsColor,0);
+        Features2d.drawKeypoints(mGrayFrame, mKeyPoints, mOutFrame, mKeyPointsColor, 0);
+        if (!mKeyPointsPrev.empty()) {
+            Features2d.drawKeypoints(mGrayFrame, mKeyPointsPrev, mOutFrame, mKeyPointsColor, 0);
+            // zmanjsas matrko mKeyPointsPrev in jo primerjas z trenutno matrko tako da isces prejsnjo matriko
+            // znotraj trenutne. Uporabis lahko bruteforce matcher.
+            mDescMatcher.match(DescPoints,mDescPointsPrev.adjustROI(8,8,8,8), matchingPoints);
+
+            PointX = mRandom.nextInt(100);
+            PointY = mRandom.nextInt(100);
+
+            isRunning = true;
+            //mSurfaceView.invalidate();
+
+        }
+        mKeyPoints.copyTo(mKeyPointsPrev);
+
         return mOutFrame;
     }
+
+    public class drawMap extends SurfaceView implements Runnable {
+        private static final String TAG = "drawMap";
+        private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        SurfaceHolder mHolder;
+        Thread mThread = null;
+
+        public drawMap(Context context) {
+            super(context);
+
+            Log.i(TAG, "Starting...");
+            mHolder = getHolder();
+            setWillNotDraw(false);
+            onSurfaceCreated();
+        }
+
+        public void pause() {
+            isRunning = false;
+            while(true) {
+                try {
+                    mThread.join();
+                }
+                catch(InterruptedException e) {
+                    e.printStackTrace();
+                }
+                break;
+            }
+            mThread = null;
+            //mThread.destroy();
+        }
+
+        public void onSurfaceCreated() {
+            Log.i(TAG, "Gnerating thread");
+            isRunning = true;
+            mThread = new Thread(this);
+            mThread.start();
+        }
+
+        @Override
+        public void run() {
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(20);
+            paint.setColor(Color.WHITE);
+
+            Log.i(TAG, "------- Run ----------");
+            while(isRunning) {
+                if (mHolder.getSurface().isValid()) {
+                    if ((PointX != 0) && (PointY != 0)) {
+                        Canvas canvas = mHolder.lockCanvas();
+                        Log.i(TAG,"Drawing (" + Integer.toString(PointX) + "," + Integer.toString(PointY) + ")");
+                        canvas.drawPoint(PointX, PointY, paint);
+                        mHolder.unlockCanvasAndPost(canvas);
+                    }
+                }
+                //mThread.yield();
+            }
+        }
+
+    }
+
 }
