@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -63,6 +64,10 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
     boolean isRunning=false;
     int PointX = 0;
     int PointY = 0;
+    float fPointX;
+    float fPointY;
+
+    Path mPath;
 
     Random mRandom;
 
@@ -77,11 +82,14 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
 
+        mPath = new Path();
+
         mSurfaceView = new drawMap(this);
         LinearLayout layout = (LinearLayout) findViewById(R.id.MapDrawingLayout);
         mSurfaceView.setId(5000);
         mSurfaceView.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 0.4f));
-        mSurfaceView.setBackgroundColor(Color.BLUE);
+        mSurfaceView.setBackgroundColor(Color.TRANSPARENT);
+        mSurfaceView.setZOrderOnTop(true);
         layout.addView(mSurfaceView);
     }
 
@@ -188,6 +196,9 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
 
             PointX = mRandom.nextInt(100);
             PointY = mRandom.nextInt(100);
+            fPointX = mRandom.nextFloat()* 10.0f;
+            fPointY = mRandom.nextFloat()* 10.0f;
+            mPath.lineTo(fPointX, fPointY);
 
             isRunning = true;
             //mSurfaceView.invalidate();
@@ -200,7 +211,6 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
 
     public class drawMap extends SurfaceView implements Runnable {
         private static final String TAG = "drawMap";
-        private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         SurfaceHolder mHolder;
         Thread mThread = null;
 
@@ -229,7 +239,7 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
         }
 
         public void onSurfaceCreated() {
-            Log.i(TAG, "Gnerating thread");
+            Log.i(TAG, "Generating thread");
             isRunning = true;
             mThread = new Thread(this);
             mThread.start();
@@ -237,6 +247,7 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
 
         @Override
         public void run() {
+            Paint paint = new Paint();
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(20);
             paint.setColor(Color.WHITE);
@@ -246,12 +257,14 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
                 if (mHolder.getSurface().isValid()) {
                     if ((PointX != 0) && (PointY != 0)) {
                         Canvas canvas = mHolder.lockCanvas();
-                        Log.i(TAG,"Drawing (" + Integer.toString(PointX) + "," + Integer.toString(PointY) + ")");
-                        canvas.drawPoint(PointX, PointY, paint);
+                        //Log.i(TAG,"Drawing (" + Integer.toString(PointX) + "," + Integer.toString(PointY) + ")");
+                        //canvas.drawPoint(PointX, PointY, paint);
+                        Log.i(TAG,"Drawing (" + Float.toString(fPointX) + "," + Float.toString(fPointY) + ")");
+                        canvas.drawPath(mPath, paint);
                         mHolder.unlockCanvasAndPost(canvas);
                     }
                 }
-                //mThread.yield();
+                mThread.yield();
             }
         }
 
