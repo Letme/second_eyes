@@ -11,6 +11,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -59,6 +60,9 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
 
     private static final String TAG = "CameraActivity";
 
+    private enum mTransformation { RIGID, HOMOGRAPHY };
+    private mTransformation mActiveTransformation = mTransformation.RIGID;
+
     private CameraBridgeViewBase mOpenCvCameraView;
     private drawMap mSurfaceView;
     private Mat mRgbaFrame;
@@ -67,20 +71,14 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
     private Mat mGrayFramePrev;
     private Mat mOutFrame;
     private Mat mDescPointsPrev;
-    private Scalar mKeyPointsColor = new Scalar(0.5,0.0,0.0,1.0);
-    private Scalar mKeyPointsColorPrev = new Scalar(0.0,0.5,0.0,1.0);
-    private FeatureDetector mFeatureDectector;
-    private MatOfKeyPoint mKeyPoints;
-    private MatOfKeyPoint mKeyPointsPrev;
-    private MatOfPoint2f prevPoints2f;
-    private DescriptorExtractor mDescExtractor;
-    private DescriptorMatcher mDescMatcher;
+
     private MatOfDMatch mMatchPoints;
     private int mWidth;
     private int mHeight;
     boolean isRunning=false;
     float fPointX;
     float fPointY;
+    private ExtractPath mExtractPath;
 
     Path mPath;
 
@@ -143,14 +141,36 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.camera, menu);
+        return true;
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        boolean retval= false;
         int id = item.getItemId();
-        if (id == android.R.id.home) {
-            // This ID represents the Home or Up button.
-            NavUtils.navigateUpFromSameTask(this);
-            return true;
+        switch (id) {
+            case android.R.id.home:
+                // This ID represents the Home or Up button.
+                NavUtils.navigateUpFromSameTask(this);
+                retval = true;
+                break;
+            case R.id.action_rigid:
+                mActiveTransformation = mTransformation.RIGID;
+                retval = true;
+                break;
+            case R.id.action_fast_homography:
+                mActiveTransformation = mTransformation.HOMOGRAPHY;
+                retval = true;
+                break;
+            default:
+                return super.onOptionsItemSelected(item);
+
         }
-        return super.onOptionsItemSelected(item);
+
+        return retval;
     }
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -177,23 +197,10 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
         mGrayFramePrev = new Mat(height, width, CvType.CV_8UC1);
         mOutFrame = new Mat(height, width, CvType.CV_8UC4);
         mDescPointsPrev = new Mat(height, width, CvType.CV_8UC4);
-        mKeyPoints = new MatOfKeyPoint();
-        mKeyPointsPrev = new MatOfKeyPoint();
 
-        // set up feature detection
-        try {
-            mFeatureDectector = FeatureDetector.create(FeatureDetector.FAST);
-        } catch (UnsatisfiedLinkError err) {
-            Log.e(TAG, "Feature detector failed with");
-            err.printStackTrace();
-        }
-        // set up description detection
-        mDescExtractor = DescriptorExtractor.create(DescriptorExtractor.BRISK);
-        mDescMatcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+        mExtractPath = new ExtractPath();
 
         mRandom = new Random();
-
-
     }
 
     public void onCameraViewStopped() {
@@ -206,71 +213,20 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
         mGrayFrame = inputFrame.gray();
 
         if (!mGrayFramePrev.empty()) {
-            Mat movement = estimateRigidTransform(mGrayFrame, mGrayFramePrev, false);
-            if (!movement.empty()) {
-                fPointX = (float) (movement.get(0, 2)[0]);
-                fPointY = (float) (movement.get(1, 2)[0]);
-                Log.i(TAG, "Adding to path (" + Float.toString(fPointX) + "," + Float.toString(fPointY) + ")");
-                mPath.rLineTo(fPointX, fPointY);
+            switch (mActiveTransformation) {
+                case RIGID:
+                    mPath = mExtractPath.withRigidTransformation(mGrayFrame, mGrayFramePrev, mPath);
+                    mGrayFrame.copyTo(mOutFrame);
+                    break;
+                case HOMOGRAPHY:
+                    mPath = mExtractPath.withFASTandHomography(mGrayFrame, mOutFrame, mDescPointsPrev, mPath);
+                    //mGrayFrame.copyTo(mOutFrame);
+                    break;
+                default:
+                    break;
             }
-        }
-        mGrayFrame.copyTo(mOutFrame);
-        if (false) {
-            Mat DescPoints = new Mat();
-            MatOfDMatch matchingPoints = new MatOfDMatch();
-
-            mFeatureDectector.detect(mRgbaFrame, mKeyPoints);
-            mDescExtractor.compute(mRgbaFrame, mKeyPoints, DescPoints);
-
-            DescPoints.copyTo(mDescPointsPrev);
-            Features2d.drawKeypoints(mGrayFrame, mKeyPoints, mOutFrame, mKeyPointsColor, 0);
-
-            // Convert MatOfKeyPoint to MatOfPoint2f
-            KeyPoint[] kpoints = mKeyPoints.toArray();
-            Point[] points = new Point[kpoints.length];
-            for (int i = 0; i < kpoints.length; ++i) {
-                points[i] = new Point(0, 0);
-                points[i].x = kpoints[i].pt.x;
-                points[i].y = kpoints[i].pt.y;
-            }
-            MatOfPoint2f currPoints2f = new MatOfPoint2f(points);
-
-            if (prevPoints2f != null) {
-                //Features2d.drawKeypoints(mGrayFrame, mKeyPointsPrev, mOutFrame, mKeyPointsColor, 0);
-
-            /*MatOfByte matches = new MatOfByte();
-            MatOfFloat err = new MatOfFloat();
-            calcOpticalFlowPyrLK(mGrayFramePrev,mGrayFrame,prevPoints2f, currPoints2f, matches, err);
-
-            // remove points where LK tracking failed or that went missing
-            for(int i=0; i < matches.toArray().length; ++i)
-            {
-                Point pt = currPoints2f.toArray()[i];
-                if ((matches.toArray()[i] == 0)||(pt.x<0)||(pt.y<0))	{
-                    currPoints2f.toList().remove(pt);
-                }
-            }
-*/
-                // now lets get out rigidTransformation for orientation vector
-                try {
-                    Mat movement = findHomography(currPoints2f, prevPoints2f, Calib3d.LMEDS, 1.2f);
-                    Log.i(TAG, "We have points. x=" + movement.get(0, 2).toString() + "y=" + movement.get(1, 2).toString());
-
-                    fPointX = (float) (movement.get(0, 2)[0]) * 10000000000000.0f;
-                    fPointY = (float) (movement.get(1, 2)[0]) * 10000000000000.0f;
-                    Log.i(TAG, "Adding to path (" + Float.toString(fPointX) + "," + Float.toString(fPointY) + ")");
-                    mPath.rLineTo(fPointX, fPointY);
-                } catch (CvException e) {
-                    Log.i(TAG, "Vectors are the same");
-                    //e.printStackTrace();
-                }
-
-                isRunning = true;
-                //mSurfaceView.invalidate();
-
-            }
-            mKeyPoints.copyTo(mKeyPointsPrev);
-            prevPoints2f = new MatOfPoint2f(points);
+        } else {
+            mOutFrame = inputFrame.gray();
         }
 
         mGrayFrame.copyTo(mGrayFramePrev);
@@ -294,22 +250,16 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
         }
 
         public void pause() {
+            Log.i(TAG, "Ending drawing thread");
             isRunning = false;
-            while(true) {
-                try {
-                    mThread.join();
-                }
-                catch(InterruptedException e) {
-                    e.printStackTrace();
-                }
-                break;
+            while (mThread != null) {
+                mThread.interrupt();
+                mThread = null;
             }
-            mThread = null;
-            //mThread.destroy();
         }
 
         public void onSurfaceCreated() {
-            Log.i(TAG, "Generating thread");
+            Log.i(TAG, "Starting drawing thread");
             isRunning = true;
             mThread = new Thread(this);
             mThread.start();
@@ -320,7 +270,18 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
             Paint paint = new Paint();
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(20);
-            paint.setColor(Color.WHITE);
+            switch (mActiveTransformation) {
+                case RIGID:
+                    paint.setColor(Color.WHITE);
+                    break;
+                case HOMOGRAPHY:
+                    paint.setColor(Color.BLUE);
+                    break;
+                default:
+                    paint.setColor(Color.GREEN);
+                    break;
+            }
+
             Canvas canvas;
 
             Log.i(TAG, "run() Init");
@@ -344,6 +305,8 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
                 }
                 mThread.yield();
             }
+
+            Log.i(TAG, "run() Ended");
         }
 
     }
