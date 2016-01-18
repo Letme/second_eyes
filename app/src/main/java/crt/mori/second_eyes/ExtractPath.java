@@ -9,6 +9,7 @@ import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
+import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
@@ -16,6 +17,13 @@ import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
 import org.opencv.features2d.Features2d;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.video.BackgroundSubtractor;
+import org.opencv.video.BackgroundSubtractorMOG2;
+import org.opencv.video.Video;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.opencv.calib3d.Calib3d.findHomography;
 import static org.opencv.video.Video.estimateRigidTransform;
@@ -36,6 +44,14 @@ public class ExtractPath {
     private MatOfKeyPoint mKeyPointsPrev;
     private MatOfPoint2f prevPoints2f;
     private Scalar mKeyPointsColor = new Scalar(0.5,0.0,0.0,1.0);
+    private List<MatOfPoint> mContours;
+    private Mat mPrevFrame;
+    private Mat RGBFrame;
+    private Mat mForeGroundMask;
+    private MatOfKeyPoint prevKeyPoints;
+    private double mRefreshRate = 0.5;
+    private BackgroundSubtractor mBackgroundSub;
+
 
     public ExtractPath() {
         super();
@@ -51,6 +67,14 @@ public class ExtractPath {
         // set up description detection
         mDescExtractor = DescriptorExtractor.create(DescriptorExtractor.BRISK);
         mDescMatcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+
+        mPrevFrame = new Mat();
+        prevKeyPoints = new MatOfKeyPoint();
+        RGBFrame = new Mat();
+        mForeGroundMask = new Mat();
+        mContours = new ArrayList<MatOfPoint>();
+        //creates a new BackgroundSubtractorMOG class with the arguments
+        mBackgroundSub = Video.createBackgroundSubtractorMOG2(50, 0, true);
     }
 
     /**
@@ -73,60 +97,48 @@ public class ExtractPath {
         return path;
     }
 
-    public Path withFASTandHomography(Mat currFrame, Mat mOutFrame, Mat prevDescPoints, Path path) {
-        Mat DescPoints = new Mat();
-        MatOfDMatch matchingPoints = new MatOfDMatch();
+    public Path withContours(Mat grayFrame, Path path) {
+        // Convert gray frame to RGB frame for background removal
+        Imgproc.cvtColor(grayFrame, RGBFrame, Imgproc.COLOR_GRAY2RGB);
+
+        mBackgroundSub.apply(RGBFrame, mForeGroundMask, mRefreshRate);
+
+        Imgproc.erode(mForeGroundMask, mForeGroundMask, new Mat());
+        Imgproc.dilate(mForeGroundMask, mForeGroundMask, new Mat());
+
+        Imgproc.findContours(mForeGroundMask, mContours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
+
+        //draws all the contours in red with thickness of 2
+        Imgproc.drawContours(RGBFrame, mContours, -1, new Scalar(255, 0, 0), 2);
+        RGBFrame.copyTo(grayFrame);
+        return path;
+    }
+
+    public Path withFAST(Mat currFrame, Mat mOutFrame, Path path) {
         MatOfKeyPoint currKeyPoints = new MatOfKeyPoint();
         float fPointX, fPointY;
 
         mFeatureDectector.detect(currFrame, currKeyPoints);
-        mDescExtractor.compute(currFrame, currKeyPoints, DescPoints);
 
-        DescPoints.copyTo(prevDescPoints);
         Features2d.drawKeypoints(currFrame, currKeyPoints, mOutFrame, mKeyPointsColor, 0);
 
-        // Convert MatOfKeyPoint to MatOfPoint2f
-        KeyPoint[] kpoints = currKeyPoints.toArray();
-        Point[] points = new Point[kpoints.length];
-        for (int i = 0; i < kpoints.length; ++i) {
-            points[i] = new Point(0, 0);
-            points[i].x = kpoints[i].pt.x;
-            points[i].y = kpoints[i].pt.y;
-        }
-        MatOfPoint2f currPoints2f = new MatOfPoint2f(points);
-
-        if (prevPoints2f != null) {
-            //Features2d.drawKeypoints(mGrayFrame, mKeyPointsPrev, mOutFrame, mKeyPointsColor, 0);
-
-            /*MatOfByte matches = new MatOfByte();
-            MatOfFloat err = new MatOfFloat();
-            calcOpticalFlowPyrLK(mGrayFramePrev,mGrayFrame,prevPoints2f, currPoints2f, matches, err);
-
-            // remove points where LK tracking failed or that went missing
-            for(int i=0; i < matches.toArray().length; ++i)
-            {
-                Point pt = currPoints2f.toArray()[i];
-                if ((matches.toArray()[i] == 0)||(pt.x<0)||(pt.y<0))	{
-                    currPoints2f.toList().remove(pt);
-                }
-            }
-*/
+        if (mPrevFrame != null) {
             // now lets get out rigidTransformation for orientation vector
-            try {
-                Mat movement = findHomography(currPoints2f, prevPoints2f, Calib3d.LMEDS, 1.2f);
-                Log.i(TAG, "We have points. x=" + movement.get(0, 2).toString() + "y=" + movement.get(1, 2).toString());
-
-                fPointX = (float) (movement.get(0, 2)[0]) * 10000000000000.0f;
-                fPointY = (float) (movement.get(1, 2)[0]) * 10000000000000.0f;
-                Log.i(TAG, "Adding to path (" + Float.toString(fPointX) + "," + Float.toString(fPointY) + ")");
-                path.rLineTo(fPointX, fPointY);
+           try {
+               Mat movement = estimateRigidTransform(mOutFrame, mPrevFrame, false);
+                //Mat movement = findHomography(currPoints2f, prevPoints2f, Calib3d.LMEDS, 1.2f);
+               if (!movement.empty()) {
+                   fPointX = (float) (movement.get(0, 2)[0]);
+                   fPointY = (float) (movement.get(1, 2)[0]);
+                   Log.i(TAG, "Adding to path (" + Float.toString(fPointX) + "," + Float.toString(fPointY) + ")");
+                   path.rLineTo(fPointX, fPointY);
+               }
             } catch (CvException e) {
                 Log.i(TAG, "Vectors are the same");
                 //e.printStackTrace();
             }
         }
-        currKeyPoints.copyTo(mKeyPointsPrev);
-        prevPoints2f = new MatOfPoint2f(points);
+        mOutFrame.copyTo(mPrevFrame);
 
         return path;
     }

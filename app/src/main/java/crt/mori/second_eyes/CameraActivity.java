@@ -60,7 +60,7 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
 
     private static final String TAG = "CameraActivity";
 
-    private enum mTransformation { RIGID, HOMOGRAPHY };
+    private enum mTransformation { RIGID, FAST, CONTOURS };
     private mTransformation mActiveTransformation = mTransformation.RIGID;
 
     private CameraBridgeViewBase mOpenCvCameraView;
@@ -162,7 +162,11 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
                 retval = true;
                 break;
             case R.id.action_fast_homography:
-                mActiveTransformation = mTransformation.HOMOGRAPHY;
+                mActiveTransformation = mTransformation.FAST;
+                retval = true;
+                break;
+            case R.id.action_contours:
+                mActiveTransformation = mTransformation.CONTOURS;
                 retval = true;
                 break;
             default:
@@ -218,8 +222,12 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
                     mPath = mExtractPath.withRigidTransformation(mGrayFrame, mGrayFramePrev, mPath);
                     mGrayFrame.copyTo(mOutFrame);
                     break;
-                case HOMOGRAPHY:
-                    mPath = mExtractPath.withFASTandHomography(mGrayFrame, mOutFrame, mDescPointsPrev, mPath);
+                case FAST:
+                    mPath = mExtractPath.withFAST(mGrayFrame, mOutFrame, mPath);
+                    //mGrayFrame.copyTo(mOutFrame);
+                    break;
+                case CONTOURS:
+                    mPath = mExtractPath.withContours(mGrayFrame, mPath);
                     //mGrayFrame.copyTo(mOutFrame);
                     break;
                 default:
@@ -274,8 +282,11 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
                 case RIGID:
                     paint.setColor(Color.WHITE);
                     break;
-                case HOMOGRAPHY:
+                case FAST:
                     paint.setColor(Color.BLUE);
+                    break;
+                case CONTOURS:
+                    paint.setColor(Color.RED);
                     break;
                 default:
                     paint.setColor(Color.GREEN);

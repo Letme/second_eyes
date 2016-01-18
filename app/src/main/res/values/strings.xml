@@ -8,5 +8,6 @@
     <string name="dummy_content">DUMMY\nCONTENT</string>
     <string name="start_camera_button">Start Camera</string>
     <string name="rigid_transform">Rigid Transformation</string>
-    <string name="fast_homography">FAST feature detection and homography</string>
+    <string name="fast_rigid_transform">FAST filter and Rigid Tranformation</string>
+    <string name="contours">Contours</string>
 </resources>
