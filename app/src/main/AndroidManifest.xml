@@ -39,6 +39,6 @@
 
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
-    <uses-feature android:name="android.hardware.camera.front" android:required="false"/>
-    <uses-feature android:name="android.hardware.camera.front.autofocus" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.back" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.back.autofocus" android:required="false"/>
 </manifest>
