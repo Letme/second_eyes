@@ -72,7 +72,7 @@ public class ExtractPath {
         prevKeyPoints = new MatOfKeyPoint();
         RGBFrame = new Mat();
         mForeGroundMask = new Mat();
-        mContours = new ArrayList<MatOfPoint>();
+        mContours = new ArrayList<>();
         //creates a new BackgroundSubtractorMOG class with the arguments
         mBackgroundSub = Video.createBackgroundSubtractorMOG2(50, 0, true);
     }
@@ -91,7 +91,7 @@ public class ExtractPath {
         if (!movement.empty()) {
             float fX = (float) (movement.get(0, 2)[0]);
             float fY = (float) (movement.get(1, 2)[0]);
-            Log.i(TAG, "Adding to path (" + Float.toString(fX) + "," + Float.toString(fY) + ")");
+            Log.i(TAG, "Adding to path (" + fX + "," + fY + ")");
             path.rLineTo(fX, fY);
         }
         return path;
@@ -130,7 +130,7 @@ public class ExtractPath {
                if (!movement.empty()) {
                    fPointX = (float) (movement.get(0, 2)[0]);
                    fPointY = (float) (movement.get(1, 2)[0]);
-                   Log.i(TAG, "Adding to path (" + Float.toString(fPointX) + "," + Float.toString(fPointY) + ")");
+                   Log.i(TAG, "Adding to path (" + fPointX + "," + fPointY + ")");
                    path.rLineTo(fPointX, fPointY);
                }
             } catch (CvException e) {

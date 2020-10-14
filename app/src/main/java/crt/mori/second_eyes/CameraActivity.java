@@ -1,60 +1,36 @@
 package crt.mori.second_eyes;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
-import android.view.MotionEvent;
-import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
 import android.view.MenuItem;
-import android.support.v4.app.NavUtils;
-import android.view.ViewGroup;
+import androidx.core.app.NavUtils;
+
 import android.view.WindowManager;
 import android.widget.LinearLayout;
-import android.widget.MultiAutoCompleteTextView;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.calib3d.Calib3d;
-import org.opencv.core.CvException;
 import org.opencv.core.CvType;
-import org.opencv.core.DMatch;
-import org.opencv.core.KeyPoint;
-import org.opencv.core.MatOfByte;
-import org.opencv.core.MatOfFloat;
-import org.opencv.core.Point;
 import org.opencv.core.MatOfDMatch;
-import org.opencv.core.MatOfKeyPoint;
-import org.opencv.core.MatOfPoint2f;
-import org.opencv.core.Scalar;
-import org.opencv.features2d.DescriptorExtractor;
-import org.opencv.features2d.DescriptorMatcher;
-import org.opencv.features2d.FeatureDetector;
 import org.opencv.core.Mat;
-import org.opencv.features2d.Features2d;
 
-import java.io.ByteArrayInputStream;
-import java.util.List;
 import java.util.Random;
 
 import static org.opencv.calib3d.Calib3d.findHomography;
 import static org.opencv.video.Video.calcOpticalFlowPyrLK;
-import static org.opencv.video.Video.estimateRigidTransform;
-
 
 public class CameraActivity extends AppCompatActivity implements CvCameraViewListener2 {
 
@@ -177,7 +153,7 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
         return retval;
     }
 
-    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+    private final BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
             switch (status) {
@@ -193,6 +169,7 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
         }
     };
 
+    @Override
     public void onCameraViewStarted(int width, int height) {
         // set up start variables
         mRgbaFrame = new Mat(height, width, CvType.CV_8UC4);
@@ -207,11 +184,13 @@ public class CameraActivity extends AppCompatActivity implements CvCameraViewLis
         mRandom = new Random();
     }
 
+    @Override
     public void onCameraViewStopped() {
         mRgbaFrame.release();
         mGrayFrame.release();
     }
 
+    @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         mRgbaFrame = inputFrame.rgba();
         mGrayFrame = inputFrame.gray();

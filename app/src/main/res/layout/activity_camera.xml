@@ -13,13 +13,17 @@
          android:fitsSystemWindows. -->
     <LinearLayout
         android:id="@+id/MapDrawingLayout"
-        android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:orientation="vertical"
         android:weightSum="1">
 
-        <org.opencv.android.JavaCameraView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/camera_view"
-            android:layout_weight="0.6" />
+        <org.opencv.android.JavaCameraView
+            android:id="@+id/camera_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.6"
+            tools:ignore="InefficientWeight" />
 
     </LinearLayout>
 

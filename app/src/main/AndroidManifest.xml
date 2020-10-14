@@ -2,6 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="crt.mori.second_eyes">
 
+    <uses-permission android:name="android.permission.CAMERA"/>
+
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.back" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.back.autofocus" android:required="false"/>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -21,7 +28,7 @@
         <activity
             android:name=".CameraActivity"
             android:configChanges="keyboardHidden"
-            android:screenOrientation ="portrait"
+            android:screenOrientation ="fullSensor"
             android:label="@string/title_activity_camera"
             android:parentActivityName=".SetupActivity"
             android:theme="@style/FullscreenTheme">
@@ -34,11 +41,4 @@
             </intent-filter>
         </activity>
     </application>
-
-    <uses-permission android:name="android.permission.CAMERA"/>
-
-    <uses-feature android:name="android.hardware.camera" android:required="false"/>
-    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
-    <uses-feature android:name="android.hardware.camera.back" android:required="false"/>
-    <uses-feature android:name="android.hardware.camera.back.autofocus" android:required="false"/>
 </manifest>
