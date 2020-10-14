@@ -3,7 +3,7 @@ package org.opencv.core;
 //javadoc:Scalar_
 public class Scalar {
 
-    public double val[];
+    public double[] val;
 
     public Scalar(double v0, double v1, double v2, double v3) {
         val = new double[] { v0, v1, v2, v3 };

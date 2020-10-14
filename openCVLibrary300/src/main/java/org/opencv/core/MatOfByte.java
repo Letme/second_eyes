@@ -62,8 +62,8 @@ public class MatOfByte extends Mat {
     public void fromList(List<Byte> lb) {
         if(lb==null || lb.size()==0)
             return;
-        Byte ab[] = lb.toArray(new Byte[0]);
-        byte a[] = new byte[ab.length];
+        Byte[] ab = lb.toArray(new Byte[0]);
+        byte[] a = new byte[ab.length];
         for(int i=0; i<ab.length; i++)
             a[i] = ab[i];
         fromArray(a);
@@ -71,7 +71,7 @@ public class MatOfByte extends Mat {
 
     public List<Byte> toList() {
         byte[] a = toArray();
-        Byte ab[] = new Byte[a.length];
+        Byte[] ab = new Byte[a.length];
         for(int i=0; i<a.length; i++)
             ab[i] = a[i];
         return Arrays.asList(ab);

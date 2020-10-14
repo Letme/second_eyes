@@ -2,9 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/Second_Eyes.iml" filepath="$PROJECT_DIR$/Second_Eyes.iml" />
-      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/openCVLibrary300/openCVLibrary300.iml" filepath="$PROJECT_DIR$/openCVLibrary300/openCVLibrary300.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/second_eyes.iml" filepath="$PROJECT_DIR$/.idea/second_eyes.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/second_eyes.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/second_eyes.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/openCVLibrary300/second_eyes.openCVLibrary300.iml" filepath="$PROJECT_DIR$/.idea/modules/openCVLibrary300/second_eyes.openCVLibrary300.iml" />
     </modules>
   </component>
 </project>

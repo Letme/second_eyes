@@ -63,7 +63,7 @@ public class DescriptorMatcher {
     //javadoc: javaDescriptorMatcher::getTrainDescriptors()
     public  List<Mat> getTrainDescriptors()
     {
-        List<Mat> retVal = new ArrayList<Mat>();
+        List<Mat> retVal = new ArrayList<>();
         Mat retValMat = new Mat(getTrainDescriptors_0(nativeObj));
         Converters.Mat_to_vector_Mat(retValMat, retVal);
         return retVal;

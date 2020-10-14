@@ -39,7 +39,7 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
     private Bitmap mCacheBitmap;
     private CvCameraViewListener2 mListener;
     private boolean mSurfaceExist;
-    private Object mSyncObject = new Object();
+    private final Object mSyncObject = new Object();
 
     protected int mFrameWidth;
     protected int mFrameHeight;
@@ -69,7 +69,7 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
         super(context, attrs);
 
         int count = attrs.getAttributeCount();
-        Log.d(TAG, "Attr count: " + Integer.valueOf(count));
+        Log.d(TAG, "Attr count: " + count);
 
         TypedArray styledAttrs = getContext().obtainStyledAttributes(attrs, R.styleable.CameraBridgeViewBase);
         if (styledAttrs.getBoolean(R.styleable.CameraBridgeViewBase_show_fps, false))
@@ -137,7 +137,7 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
         Mat onCameraFrame(CvCameraViewFrame inputFrame);
     }
 
-    protected class CvCameraViewListenerAdapter implements CvCameraViewListener2  {
+    protected static class CvCameraViewListenerAdapter implements CvCameraViewListener2  {
         public CvCameraViewListenerAdapter(CvCameraViewListener oldStypeListener) {
             mOldStyleListener = oldStypeListener;
         }
@@ -191,6 +191,7 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
         Mat gray();
     }
 
+    @Override
     public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
         Log.d(TAG, "call surfaceChanged event");
         synchronized(mSyncObject) {
@@ -209,6 +210,7 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
         }
     }
 
+    @Override
     public void surfaceCreated(SurfaceHolder holder) {
         /* Do nothing. Wait until surfaceChanged delivered */
     }
@@ -362,11 +364,9 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
             AlertDialog ad = new AlertDialog.Builder(getContext()).create();
             ad.setCancelable(false); // This blocks the 'BACK' button
             ad.setMessage("It seems that you device does not support camera (or it is locked). Application will be closed.");
-            ad.setButton(DialogInterface.BUTTON_NEUTRAL,  "OK", new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();
-                    ((Activity) getContext()).finish();
-                }
+            ad.setButton(DialogInterface.BUTTON_NEUTRAL,  "OK", (dialog, which) -> {
+                dialog.dismiss();
+                ((Activity) getContext()).finish();
             });
             ad.show();
 
